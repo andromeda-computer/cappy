@@ -6,6 +6,7 @@ import { mkdir } from "node:fs/promises";
 
 const MetadataSchema = z.object({
   username: z.string(),
+  filename: z.string().optional(), // if filename is not given does it mean it should be unlisted?
   folder: z.string().optional(),
 });
 
@@ -24,6 +25,7 @@ export const storeHandler = async (req: Request): Promise<Response> => {
     return new Response("Bad Request", { status: 400 });
   if (!(data instanceof File))
     return new Response("Bad Request", { status: 400 });
+
   const parsed = MetadataSchema.safeParse(JSON.parse(metadataFormData));
 
   if (!parsed.success) {
@@ -39,6 +41,8 @@ export const storeHandler = async (req: Request): Promise<Response> => {
 
   // infer file type from the data
   const fileType = await fileTypeFromBuffer(buffer);
+  // TODO should we allow unknown files, and then just store them as binary?
+  if (!fileType) return new Response("Unsupported file type", { status: 400 });
   const fileHash = hash(buffer);
 
   // if file already exists, return the hash
@@ -53,7 +57,15 @@ export const storeHandler = async (req: Request): Promise<Response> => {
 
   // TODO probably need error handling here
   await Bun.write(`${path}/data.${fileType?.ext}`, buffer);
-  await Bun.write(`${path}/metadata.json`, JSON.stringify(metadata));
+  await Bun.write(
+    `${path}/metadata.json`,
+    JSON.stringify({
+      ...metadata,
+      originalFilename: data.name,
+      mime: data.type,
+      ext: fileType?.ext,
+    })
+  );
 
   return new Response(JSON.stringify({ hash: fileHash }), {
     status: 200,
