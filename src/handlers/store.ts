@@ -1,14 +1,9 @@
 import { fileTypeFromBuffer } from "file-type";
-import { z } from "zod";
 import { hash } from "../lib/hash";
 import { STORE_DIR } from "../lib/env";
 import { mkdir } from "node:fs/promises";
-
-const MetadataSchema = z.object({
-  username: z.string(),
-  filename: z.string().optional(), // if filename is not given does it mean it should be unlisted?
-  folder: z.string().optional(),
-});
+import { RequestMetadataSchema, type DatabaseMetadata } from "../lib/types";
+import { fileExists, hashExists, insertFile } from "../lib/db";
 
 export const storeHandler = async (req: Request): Promise<Response> => {
   if (req.method !== "POST")
@@ -26,7 +21,7 @@ export const storeHandler = async (req: Request): Promise<Response> => {
   if (!(data instanceof File))
     return new Response("Bad Request", { status: 400 });
 
-  const parsed = MetadataSchema.safeParse(JSON.parse(metadataFormData));
+  const parsed = RequestMetadataSchema.safeParse(JSON.parse(metadataFormData));
 
   if (!parsed.success) {
     return new Response(
@@ -35,9 +30,11 @@ export const storeHandler = async (req: Request): Promise<Response> => {
     );
   }
 
+  const originalFilename = data.name;
+  const createdAt = Math.floor(Date.now() / 1000);
+  const filename = parsed.data.filename ?? originalFilename;
   const buffer = Buffer.from(await data.arrayBuffer());
-
-  const metadata = parsed.data;
+  const reqData = parsed.data;
 
   // infer file type from the data
   const fileType = await fileTypeFromBuffer(buffer);
@@ -45,30 +42,62 @@ export const storeHandler = async (req: Request): Promise<Response> => {
   if (!fileType) return new Response("Unsupported file type", { status: 400 });
   const fileHash = hash(buffer);
 
-  // if file already exists, return the hash
-  // this would include reading the metadata.json file data.ext file
+  let metadata: DatabaseMetadata = {
+    hash: fileHash,
+    filename: reqData.filename ?? originalFilename,
+    originalFilename,
+    username: reqData.username,
+    visibility: reqData.visibility,
+    createdAt,
+  };
 
-  let path = `${STORE_DIR}/${metadata.username}/${fileHash}`;
-  if (metadata.folder) {
-    path = `${STORE_DIR}/${metadata.username}/${metadata.folder}/${fileHash}`;
+  // check db if username/filename already exists
+  const filenameExists = fileExists(reqData.username, filename);
+  const hashExist = hashExists(reqData.username, fileHash);
+
+  console.log(filenameExists, hashExist);
+
+  if (!filenameExists && !hashExist) {
+    // if new file, insert into db
+    insertFile(metadata);
+  } else {
+    if (filenameExists && filenameExists.hash === fileHash) {
+      // if the hash matches, return 200
+      return new Response(
+        JSON.stringify({ ...filenameExists, status: "exists" }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    if (hashExist) {
+      // if the hash exists, return 409
+      return new Response("Different filename exists with the same hash.", {
+        status: 409,
+      });
+    }
+
+    // if the hash does not match, return 409
+    return new Response("File with this filename already exists.", {
+      status: 409,
+    });
   }
 
+  let path = `${STORE_DIR}/${fileHash}`;
   await mkdir(path, { recursive: true });
 
   // TODO probably need error handling here
   await Bun.write(`${path}/data.${fileType?.ext}`, buffer);
   await Bun.write(
     `${path}/metadata.json`,
-    JSON.stringify({
-      ...metadata,
-      originalFilename: data.name,
-      mime: data.type,
-      ext: fileType?.ext,
-    })
+    // TODO if filename not provided then filename is originalFilename
+    JSON.stringify(metadata)
   );
 
   return new Response(JSON.stringify({ hash: fileHash }), {
-    status: 200,
+    status: 201, // created
     headers: { "Content-Type": "application/json" },
   });
 };

@@ -1,8 +1,6 @@
 import { storeHandler } from "./handlers/store";
 import { EXTERNAL_SERVICE_PORT, INTERNAL_SERVICE_PORT } from "./lib/env";
 
-console.log("Hello via Bun!");
-
 const startFrontendServer = () => {
   console.log(`Starting frontend server on port ${EXTERNAL_SERVICE_PORT}`);
   Bun.serve({
