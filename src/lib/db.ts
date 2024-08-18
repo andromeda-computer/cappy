@@ -1,6 +1,13 @@
 import { Database } from "bun:sqlite";
 import { STORE_DIR } from "./env";
-import { DatabaseMetadataSchema, type DatabaseMetadata } from "./types";
+import {
+  DatabaseMetadataSchema,
+  type DatabaseMetadata,
+  type GetFileRequestURLParams,
+} from "./types";
+import fs from "fs";
+
+fs.mkdirSync(STORE_DIR, { recursive: true });
 
 export const db = new Database(`${STORE_DIR}/db.sqlite`);
 db.exec("PRAGMA journal_mode = WAL;");
@@ -11,6 +18,7 @@ db.run(`CREATE TABLE IF NOT EXISTS files (
     filename TEXT NOT NULL,
     originalFilename TEXT NOT NULL,
     username TEXT NOT NULL,
+    extension TEXT NOT NULL,
     visibility TEXT NOT NULL,
     createdAt INTEGER NOT NULL,
     UNIQUE(username, filename)
@@ -34,10 +42,31 @@ export const hashExists = (username: string, hash: string) => {
   return null;
 };
 
+export const getFile = (params: GetFileRequestURLParams) => {
+  const query = db.query(`
+    SELECT * FROM files 
+    WHERE username = $username 
+      AND (
+        ($isHash = 0 AND filename = $searchTerm)
+        OR 
+        ($isHash = 1 AND hash = $searchTerm)
+      )
+  `);
+
+  const result = query.get({
+    $username: params.username,
+    $searchTerm: params.filename,
+    $isHash: params.isHash ? 1 : 0,
+  });
+
+  if (result) return DatabaseMetadataSchema.parse(result);
+  return null;
+};
+
 export const insertFile = (metadata: DatabaseMetadata) => {
   const query = db.query(`
-        INSERT INTO files (hash, filename, originalFilename, username, visibility, createdAt) 
-        VALUES ($hash, $filename, $originalFilename, $username, $visibility, $createdAt)
+        INSERT INTO files (hash, filename, originalFilename, username, visibility, createdAt, extension) 
+        VALUES ($hash, $filename, $originalFilename, $username, $visibility, $createdAt, $extension)
     `);
   return query.run({
     $hash: metadata.hash,
@@ -46,5 +75,6 @@ export const insertFile = (metadata: DatabaseMetadata) => {
     $username: metadata.username,
     $visibility: metadata.visibility,
     $createdAt: metadata.createdAt,
+    $extension: metadata.extension,
   });
 };

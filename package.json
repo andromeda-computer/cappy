@@ -9,10 +9,10 @@
     "@types/bun": "latest"
   },
   "peerDependencies": {
-    "typescript": "^5.0.0"
+    "typescript": "^5.5.4"
   },
   "dependencies": {
-    "file-type": "^19.4.0",
+    "file-type": "^19.4.1",
     "zod": "^3.23.8"
   }
 }

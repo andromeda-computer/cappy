@@ -1,3 +1,4 @@
+import { getFileHandler, parseGetFileRequest } from "./handlers/public/getFile";
 import { storeHandler } from "./handlers/store";
 import { EXTERNAL_SERVICE_PORT, INTERNAL_SERVICE_PORT } from "./lib/env";
 
@@ -7,7 +8,11 @@ const startFrontendServer = () => {
     port: EXTERNAL_SERVICE_PORT,
     fetch(req) {
       const url = new URL(req.url);
-      if (url.pathname === "/") return new Response("cappy");
+      const path = url.pathname;
+      const parsed = parseGetFileRequest(path);
+
+      if (parsed) return getFileHandler(req, parsed);
+      if (path === "/") return new Response("cappy");
 
       return new Response("404");
     },
@@ -21,7 +26,9 @@ const startBackendServer = () => {
     async fetch(req) {
       const url = new URL(req.url);
       if (url.pathname === "/store") return await storeHandler(req);
-      // TODO create a folder
+      if (url.pathname === "/")
+        return new Response(Bun.file("./src/ui/backend/index.html"));
+      // TODO PATCH for updating metadata?
       // TODO this is a regex match on the path
       //   if (url.pathname === "/delete") return await deleteHandler(req);
 

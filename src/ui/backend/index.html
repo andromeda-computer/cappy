@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cappy Ingestor</title>
+    <style>
+      body {
+        background-color: #1a1a1a;
+        color: #e6e6e6;
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+      }
+
+      a {
+        color: #999;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 2rem auto 0;
+        padding: 20px;
+        text-align: center;
+      }
+      input,
+      button {
+        margin: 10px 0;
+        padding: 5px;
+      }
+      #filename {
+        width: 200px;
+      }
+
+      .toast {
+        position: fixed;
+        background-color: #333;
+        color: #fff;
+        padding: 10px 20px;
+        border-radius: 5px;
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out;
+        z-index: 1000;
+      }
+
+      .toast.show {
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>cappy ingestion</h1>
+      <form
+        id="uploadForm"
+        enctype="multipart/form-data"
+        method="POST"
+        action="/store"
+      >
+        <input type="file" id="fileInput" name="data" required /><br />
+        <input type="text" id="filename" placeholder="Filename" /><br />
+        <input type="checkbox" id="unlisted" checked />
+        <label for="unlisted">Unlisted</label><br />
+        <input type="text" id="username" placeholder="Username" /><br />
+        <input type="hidden" id="metadata" name="metadata" />
+        <button type="submit">Upload</button>
+      </form>
+    </div>
+
+    <script>
+      const fileInput = document.getElementById("fileInput");
+      const filenameInput = document.getElementById("filename");
+      const unlistedCheckbox = document.getElementById("unlisted");
+      const usernameInput = document.getElementById("username");
+      const metadataInput = document.getElementById("metadata");
+      const form = document.getElementById("uploadForm");
+
+      fileInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const fileParts = file.name.split(".");
+          originalExtension = fileParts.length > 1 ? fileParts.pop() : "";
+          const nameWithoutExtension = fileParts.join(".");
+          filenameInput.value = file.name;
+          filenameInput.dataset.nameWithoutExtension = nameWithoutExtension;
+        }
+      });
+
+      filenameInput.addEventListener("dblclick", (e) => {
+        const input = e.target;
+        const nameWithoutExtension =
+          input.dataset.nameWithoutExtension || input.value.split(".")[0];
+
+        // Set selection to cover only the filename part
+        input.setSelectionRange(0, nameWithoutExtension.length);
+
+        // Prevent default double-click behavior
+        e.preventDefault();
+      });
+
+      // Load username from local storage
+      window.addEventListener("load", () => {
+        const storedUsername = localStorage.getItem("username");
+        if (storedUsername) {
+          usernameInput.value = storedUsername;
+        }
+      });
+
+      // Update metadata and save username to local storage on form submit
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+
+        const metadata = {
+          filename: filenameInput.value,
+          visibility: unlistedCheckbox.checked ? "unlisted" : "public",
+          username: usernameInput.value,
+        };
+
+        metadataInput.value = JSON.stringify(metadata);
+        localStorage.setItem("username", usernameInput.value);
+
+        // Create FormData object and append file and metadata
+        const formData = new FormData(form);
+
+        // Send the form data using fetch
+        fetch("/store", {
+          method: "POST",
+          body: formData,
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            console.log("Success /store:", data);
+            displayResult(data);
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            displayError(error.message);
+          });
+      });
+
+      function displayResult(data) {
+        // Remove any existing result
+        const existingResult = document.getElementById("result");
+        if (existingResult) {
+          existingResult.remove();
+        }
+
+        const resultDiv = document.createElement("div");
+        resultDiv.id = "result";
+
+        let statusMessage = "";
+        let statusColor = "";
+
+        console.log(data, data.status);
+
+        if (data.status === "exists") {
+          statusMessage = "File already exists.";
+          statusColor = "#FFA500"; // Yellow-orange
+        } else {
+          statusMessage = "File uploaded successfully.";
+          statusColor = "#00FF00"; // Green
+        }
+
+        resultDiv.innerHTML = `
+            <p style="color: ${statusColor};">${statusMessage}</p>
+        `;
+
+        const baseUrl = "http://localhost:8464";
+
+        if (data.visibility === "public") {
+          const hashLink = `${baseUrl}/${data.username}/${data.hash}`;
+          const filenameLink = `${baseUrl}/${data.username}/${data.filename}`;
+          resultDiv.innerHTML += `
+    <p>links:</p>
+    <div style="display: flex; align-items: center; margin-bottom: 5px;">
+      <button onclick="copyToClipboard('${filenameLink}', this)" style="margin-right: 10px;">copy</button>
+      <a href="${filenameLink}">${filenameLink}</a>
+    </div>
+    <div style="display: flex; align-items: center;">
+      <button onclick="copyToClipboard('${hashLink}', this)" style="margin-right: 10px;">copy</button>
+      <a href="${hashLink}">${hashLink}</a>
+    </div>
+  `;
+        } else {
+          const hashLink = `${baseUrl}/${data.username}/${data.hash}`;
+          resultDiv.innerHTML += `
+    <p>link:</p>
+    <div style="display: flex; align-items: center;">
+      <button onclick="copyToClipboard('${hashLink}', this)" style="margin-right: 10px;">copy</button>
+      <a href="${hashLink}">${hashLink}</a>
+    </div>
+  `;
+        }
+
+        document.querySelector(".container").appendChild(resultDiv);
+      }
+
+      function displayError(message) {
+        // Remove any existing result
+        const existingResult = document.getElementById("result");
+        if (existingResult) {
+          existingResult.remove();
+        }
+
+        const errorDiv = document.createElement("div");
+        errorDiv.id = "result";
+        errorDiv.innerHTML = `<p style="color: red;">Error: ${message}</p>`;
+        document.querySelector(".container").appendChild(errorDiv);
+      }
+
+      function copyToClipboard(text, buttonElement) {
+        navigator.clipboard
+          .writeText(text)
+          .then(() => {
+            showToast("Link copied to clipboard!", buttonElement);
+          })
+          .catch((err) => {
+            console.error("Failed to copy: ", err);
+            showToast("Failed to copy link", buttonElement);
+          });
+      }
+
+      function showToast(message, buttonElement) {
+        // Create toast element
+        const toast = document.createElement("div");
+        toast.className = "toast";
+        toast.textContent = message;
+
+        // Position the toast near the button
+        const rect = buttonElement.getBoundingClientRect();
+        toast.style.left = `${rect.left}px`;
+        toast.style.top = `${rect.bottom + 10}px`;
+
+        // Add toast to the document
+        document.body.appendChild(toast);
+
+        // Show the toast
+        setTimeout(() => toast.classList.add("show"), 10);
+
+        // Hide and remove the toast after 3 seconds
+        setTimeout(() => {
+          toast.classList.remove("show");
+          setTimeout(() => document.body.removeChild(toast), 300);
+        }, 1000);
+      }
+    </script>
+  </body>
+</html>

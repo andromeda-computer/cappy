@@ -1,4 +1,3 @@
-import { file } from "bun";
 import { z } from "zod";
 
 export const FileVisibilityEnum = z.enum(["public", "unlisted"]);
@@ -17,8 +16,15 @@ export const DatabaseMetadataSchema = z.object({
   filename: z.string(),
   originalFilename: z.string(),
   username: z.string(),
+  extension: z.string(),
   visibility: FileVisibilityEnum,
   createdAt: z.number(),
 });
 
 export type DatabaseMetadata = z.infer<typeof DatabaseMetadataSchema>;
+
+export interface GetFileRequestURLParams {
+  username: string;
+  filename: string;
+  isHash: boolean;
+}

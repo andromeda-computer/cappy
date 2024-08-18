@@ -6,6 +6,7 @@ import { RequestMetadataSchema, type DatabaseMetadata } from "../lib/types";
 import { fileExists, hashExists, insertFile } from "../lib/db";
 
 export const storeHandler = async (req: Request): Promise<Response> => {
+  // TODO semantically this should be a PUT request
   if (req.method !== "POST")
     return new Response("Method Not Allowed", { status: 405 });
 
@@ -38,6 +39,8 @@ export const storeHandler = async (req: Request): Promise<Response> => {
 
   // infer file type from the data
   const fileType = await fileTypeFromBuffer(buffer);
+  // TODO we should try to parse the file extension from the filename if we can't infer it
+
   // TODO should we allow unknown files, and then just store them as binary?
   if (!fileType) return new Response("Unsupported file type", { status: 400 });
   const fileHash = hash(buffer);
@@ -48,6 +51,7 @@ export const storeHandler = async (req: Request): Promise<Response> => {
     originalFilename,
     username: reqData.username,
     visibility: reqData.visibility,
+    extension: fileType.ext,
     createdAt,
   };
 
@@ -85,18 +89,18 @@ export const storeHandler = async (req: Request): Promise<Response> => {
     });
   }
 
-  let path = `${STORE_DIR}/${fileHash}`;
+  let path = `${STORE_DIR}/${reqData.username}/${fileHash}`;
   await mkdir(path, { recursive: true });
 
   // TODO probably need error handling here
-  await Bun.write(`${path}/data.${fileType?.ext}`, buffer);
+  await Bun.write(`${path}/data.${fileType.ext}`, buffer);
   await Bun.write(
     `${path}/metadata.json`,
     // TODO if filename not provided then filename is originalFilename
     JSON.stringify(metadata)
   );
 
-  return new Response(JSON.stringify({ hash: fileHash }), {
+  return new Response(JSON.stringify({ ...metadata, status: "new" }), {
     status: 201, // created
     headers: { "Content-Type": "application/json" },
   });
