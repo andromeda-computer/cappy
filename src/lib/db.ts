@@ -24,6 +24,28 @@ db.run(`CREATE TABLE IF NOT EXISTS files (
     UNIQUE(username, filename)
 );`);
 
+export const listUserFiles = (
+  username: string,
+  includeUnlisted: boolean = false
+) => {
+  const query = db.query(`
+    SELECT * FROM files WHERE username = $username
+    ${includeUnlisted ? "" : "AND visibility = 'public'"}
+  `);
+  const results = query.all({ $username: username });
+
+  if (results) return results.map((r) => DatabaseMetadataSchema.parse(r));
+
+  return null;
+};
+
+export const deleteFile = (username: string, hash: string) => {
+  const query = db.query(`
+    DELETE FROM files WHERE username = $username AND hash = $hash
+  `);
+  return query.run({ $username: username, $hash: hash });
+};
+
 export const fileExists = (username: string, filename: string) => {
   const query = db.query(
     `SELECT * FROM files WHERE username = $username AND filename = $filename`

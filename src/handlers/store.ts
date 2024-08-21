@@ -6,10 +6,6 @@ import { RequestMetadataSchema, type DatabaseMetadata } from "../lib/types";
 import { fileExists, hashExists, insertFile } from "../lib/db";
 
 export const storeHandler = async (req: Request): Promise<Response> => {
-  // TODO semantically this should be a PUT request
-  if (req.method !== "POST")
-    return new Response("Method Not Allowed", { status: 405 });
-
   const formData = await req.formData();
   const data = formData.get("data");
   const metadataFormData = formData.get("metadata");

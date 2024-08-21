@@ -13,27 +13,14 @@ export function parseGetFileRequest(
   const [, username, filename] = match;
   const isHash = /^[a-fA-F0-9]{64}$/.test(filename);
 
+  console.log({ username, filename, isHash });
+
   return { username, filename, isHash };
 }
 
-function parseRange(req: Request): [number, number] {
-  const rangeHeader = req.headers.get("Range");
-  if (!rangeHeader) {
-    return [0, Infinity];
-  }
-
-  const parts = rangeHeader.split("=").at(-1)?.split("-") ?? [];
-  const [startStr, endStr] = parts;
-
-  const start = Number(startStr) || 0;
-  const end = endStr ? Number(endStr) : Infinity;
-
-  return [start, end];
-}
-
 export const getFileHandler = async (
-  req: Request,
-  params: GetFileRequestURLParams
+  params: GetFileRequestURLParams,
+  range: [number, number]
 ): Promise<Response> => {
   const dbFile = getFile(params);
 
@@ -51,9 +38,7 @@ export const getFileHandler = async (
   const filepath = `${STORE_DIR}/${dbFile.username}/${dbFile.hash}/data.${dbFile.extension}`;
   const file = Bun.file(filepath);
 
-  const [start, end] = parseRange(req);
-
-  console.log(start, end);
+  const [start, end] = range;
 
   return new Response(file.slice(start, end));
 };
