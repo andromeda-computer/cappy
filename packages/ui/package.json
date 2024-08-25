@@ -10,15 +10,10 @@
   "private": true,
   "dependencies": {
     "@cappy/store": "workspace:*",
-    "@hono/react-renderer": "^0.2.1",
     "@hono/zod-validator": "^0.2.2",
     "hono": "^4.5.8",
     "honox": "^0.1.23",
-    "react": "npm:@hono/react-compat",
-    "react-dom": "npm:@hono/react-compat",
-    "react-dropzone": "^14.2.3",
-    "zod": "^3.23.8",
-    "zustand": "^4.5.5"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240529.0",
