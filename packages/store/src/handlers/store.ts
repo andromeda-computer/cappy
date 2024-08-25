@@ -4,6 +4,7 @@ import { STORE_DIR } from "../lib/env";
 import { mkdir } from "node:fs/promises";
 import { RequestMetadataSchema, type DatabaseMetadata } from "../lib/types";
 import { fileExists, hashExists, insertFile } from "../lib/db";
+import { getFilePath, writeFileMetadata } from "../lib/utils";
 
 export const storeHandler = async (req: Request): Promise<Response> => {
   const formData = await req.formData();
@@ -85,16 +86,12 @@ export const storeHandler = async (req: Request): Promise<Response> => {
     });
   }
 
-  let path = `${STORE_DIR}/${reqData.username}/${fileHash}`;
+  let path = getFilePath(reqData.username, fileHash);
   await mkdir(path, { recursive: true });
 
   // TODO probably need error handling here
   await Bun.write(`${path}/data.${fileType.ext}`, buffer);
-  await Bun.write(
-    `${path}/metadata.json`,
-    // TODO if filename not provided then filename is originalFilename
-    JSON.stringify(metadata)
-  );
+  await writeFileMetadata(metadata);
 
   return new Response(JSON.stringify({ ...metadata, status: "new" }), {
     status: 201, // created

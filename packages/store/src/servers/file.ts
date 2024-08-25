@@ -21,7 +21,7 @@ app.get(
   }
 );
 
-console.log(`Starting frontend server on port ${EXTERNAL_SERVICE_PORT}`);
+console.log(`Starting file server on port ${EXTERNAL_SERVICE_PORT}`);
 export default {
   port: EXTERNAL_SERVICE_PORT,
   fetch: app.fetch,
