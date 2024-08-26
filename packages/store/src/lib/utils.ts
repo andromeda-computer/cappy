@@ -1,3 +1,4 @@
+import { fileTypeFromBuffer } from "file-type";
 import { STORE_DIR } from "./env";
 import { type DatabaseMetadata, DatabaseMetadataSchema } from "./types";
 
@@ -28,4 +29,28 @@ export async function getFileMetadata(username: string, hash: string) {
 export async function writeFileMetadata(metadata: DatabaseMetadata) {
   const path = getFilePath(metadata.username, metadata.hash);
   await Bun.write(`${path}/metadata.json`, JSON.stringify(metadata));
+}
+
+interface FileType {
+  ext: string;
+  mime: string;
+}
+export async function getFileType(
+  file: File,
+  buffer: Buffer
+): Promise<FileType> {
+  if (file.type && file.type.split("/").at(-1)) {
+    return {
+      ext: file.type.split("/").at(-1)!,
+      mime: file.type,
+    };
+  } else {
+    const fileType = await fileTypeFromBuffer(buffer);
+    if (fileType) return fileType;
+
+    return {
+      ext: file.name ?? "bin",
+      mime: "application/octet-stream",
+    };
+  }
 }

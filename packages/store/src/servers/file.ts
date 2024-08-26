@@ -1,9 +1,11 @@
 import { Hono } from "hono";
-import { EXTERNAL_SERVICE_PORT } from "../lib/env";
-import { getFileHandler } from "../handlers/public/getFile";
-import { parseRange } from "../lib/utils";
+import { EXTERNAL_SERVICE_PORT, STORE_DIR } from "../lib/env";
+import { logger } from "hono/logger";
+import { getFile } from "../lib/db";
 
 const app = new Hono();
+
+app.use(logger());
 
 app.get("/", async (c) => {
   return c.html("cappy");
@@ -15,9 +17,31 @@ app.get(
     const { username, filename } = c.req.param();
     const isHash = /^[a-fA-F0-9]{64}$/.test(filename);
     const rangeHeader = c.req.header("Range");
-    const range = parseRange(rangeHeader);
+    console.log({ rangeHeader });
 
-    return await getFileHandler({ username, filename, isHash }, range);
+    const dbFile = getFile({ username, filename, isHash });
+
+    // if file not found
+    if (!dbFile) return c.text("File not found", { status: 404 });
+
+    // if file is unlisted
+    if (!isHash && dbFile.visibility === "unlisted") {
+      console.log(
+        `warning: someone tried to access the unlisted file: ${username}/${filename}`
+      );
+      return c.text("File not found", { status: 404 });
+    }
+
+    const filepath = `${STORE_DIR}/${dbFile.username}/${dbFile.hash}/data.${dbFile.extension}`;
+    const file = Bun.file(filepath);
+
+    if (await file.exists()) {
+      console.log(file.type);
+      // @ts-ignore
+      return c.body(file);
+    } else {
+      return c.text("File not found", { status: 404 });
+    }
   }
 );
 
