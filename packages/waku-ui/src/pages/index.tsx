@@ -1,35 +1,34 @@
-import { Link } from 'waku';
-
-import { Counter } from '../components/counter';
+import { Link } from "waku";
+import { ListFileResponse } from "../lib/types";
+import { z } from "zod";
+import FileGrid from "../components/FileGrid";
 
 export default async function HomePage() {
-  const data = await getData();
+  const files = await fetch("http://localhost:34997/list")
+    .then((res) => res.json())
+    .then((d) => ListFileResponse.parse(d));
+  const users = await fetch("http://localhost:34997/users")
+    .then((r) => r.json())
+    .then((d) => z.array(z.string()).parse(d));
 
   return (
-    <div>
-      <title>{data.title}</title>
-      <h1 className="text-4xl font-bold tracking-tight">{data.headline}</h1>
-      <p>{data.body}</p>
-      <Counter />
-      <Link to="/about" className="mt-4 inline-block underline">
-        About page
-      </Link>
+    <div className={"flex flex-col gap-6"}>
+      <h2>~</h2>
+      <div className={"flex flex-col gap-1"}>
+        <h2>users</h2>
+        {users.map((user) => (
+          <Link key={user} to={`/~/${user}`}>
+            {user}
+          </Link>
+        ))}
+      </div>
+      <FileGrid files={files} showUsername={true} />
     </div>
   );
 }
 
-const getData = async () => {
-  const data = {
-    title: 'Waku',
-    headline: 'Waku',
-    body: 'Hello world!',
-  };
-
-  return data;
-};
-
 export const getConfig = async () => {
   return {
-    render: 'static',
+    render: "static",
   };
 };
