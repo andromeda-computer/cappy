@@ -14,7 +14,6 @@ import { zValidator } from "@hono/zod-validator";
 import { ModifyMetadataRequestSchema } from "../lib/types";
 import { getFileMetadata, writeFileMetadata } from "../lib/utils";
 import { logger } from "hono/logger";
-import { z } from "zod";
 
 const app = new Hono();
 app.use(logger());

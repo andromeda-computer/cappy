@@ -14,15 +14,13 @@ export default async function RootLayout({ children }: RootLayoutProps) {
   return (
     <html>
       <head></head>
-      <body>
+      <body className="bg-neutral-800 p-24 flex *:min-h-64 *:min-w-64 lg:m-0 lg:min-h-svh justify-center">
         <Providers>
           <div className="font-['Nunito']">
             <meta property="description" content={data.description} />
             <link rel="icon" type="image/png" href={data.icon} />
             <Header />
-            <main className="bg-neutral-800 p-24 flex *:min-h-64 *:min-w-64 lg:m-0 lg:min-h-svh justify-center">
-              {children}
-            </main>
+            <main className="">{children}</main>
             <Footer />
           </div>
         </Providers>

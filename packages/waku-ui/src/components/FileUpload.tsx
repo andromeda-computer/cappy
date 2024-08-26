@@ -1,15 +1,11 @@
 "use client";
 import { useState } from "react";
-import { storeFile, storeFileOld } from "../lib/serverActions";
-
-function arrayBufferToHexString(buffer: ArrayBuffer): string {
-  return Array.from(new Uint8Array(buffer))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join(" ");
-}
+import { storeFileOld } from "../lib/serverActions";
+import { useAtom } from "jotai";
+import { usernameAtom } from "../atoms";
 
 const FileUpload = () => {
-  const [username, setUsername] = useState<string>("");
+  const [username, setUsername] = useAtom(usernameAtom);
   const [filename, setFilename] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
 
@@ -53,7 +49,7 @@ const FileUpload = () => {
         id="username"
         name="username"
         required
-        value={username}
+        value={username ?? ""}
         onChange={(e) => setUsername((e.target as HTMLInputElement).value)}
       />
       <label htmlFor="filename">Filename</label>
