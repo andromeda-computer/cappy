@@ -4,6 +4,7 @@ import { z } from "zod";
 import FileGrid from "../components/FileGrid";
 
 export default async function HomePage() {
+  // TODO replace
   const files = await fetch("http://localhost:34997/list")
     .then((res) => res.json())
     .then((d) => ListFileResponse.parse(d));
@@ -29,6 +30,6 @@ export default async function HomePage() {
 
 export const getConfig = async () => {
   return {
-    render: "static",
+    render: "dynamic",
   };
 };

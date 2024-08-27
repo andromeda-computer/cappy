@@ -16,4 +16,10 @@ const UserFilesPage = async ({ username }: { username: string }) => {
   );
 };
 
+export const getConfig = async () => {
+  return {
+    render: "dynamic",
+  };
+};
+
 export default UserFilesPage;
