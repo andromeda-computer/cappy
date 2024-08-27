@@ -35,4 +35,8 @@
         background-position: right 0.5rem center;
         background-size: 1em;
     }
+
+    pre {
+        @apply bg-neutral-700 rounded-md p-2 text-xs whitespace-pre-wrap overflow-ellipsis overflow-hidden;
+    }
   }

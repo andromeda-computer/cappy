@@ -74,6 +74,7 @@ export const storeHandler = async (req: Request): Promise<Response> => {
       });
     }
 
+    // TODO built consitent error handling
     // if the hash does not match, return 409
     return new Response("File with this filename already exists.", {
       status: 409,

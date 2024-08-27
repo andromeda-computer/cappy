@@ -3,6 +3,8 @@ import { useState } from "react";
 import { FileUploadResponse, storeFileOld } from "../lib/serverActions";
 import { useAtom } from "jotai";
 import { usernameAtom } from "../atoms";
+import CopyURLButton from "./CopyURLButton";
+import { getFileURL } from "../lib/utils";
 
 const FileUpload = () => {
   const [username, setUsername] = useAtom(usernameAtom);
@@ -40,7 +42,7 @@ const FileUpload = () => {
   const isFormValid = file && username;
 
   return (
-    <div className="self-center pt-6">
+    <div className="self-center pt-6 w-full max-w-2xl flex flex-col items-center">
       <form
         onSubmit={handleSubmit}
         className={"grid grid-cols-2 gap-2 max-w-lg"}
@@ -88,7 +90,7 @@ const FileUpload = () => {
         </button>
       </form>
 
-      <div className="mt-6 flex flex-col gap-1 items-center">
+      <div className="mt-6 flex flex-col gap-1 items-center max-w-2xl">
         {isUploading && <div className="mt-6">Uploading...</div>}
         {response && (
           <>
@@ -102,9 +104,11 @@ const FileUpload = () => {
                     ? "File uploaded successfully"
                     : "Uploaded file already exists!"}
                 </div>
-                <div>Filename: {response.data.filename}</div>
-                {response.data.visibility === "public" && <div>Public URL</div>}
-                <div>URL</div>
+                <a href={getFileURL(response.data)}>{response.data.filename}</a>
+                <div className="flex gap-2 items-center">
+                  <pre className="max-w-lg">{getFileURL(response.data)}</pre>
+                  <CopyURLButton file={response.data} />
+                </div>
               </>
             )}
           </>

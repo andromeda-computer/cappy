@@ -83,7 +83,7 @@ export async function storeFileOld(
     })
       .then((res) => res.json())
       .then((d) => ({ data: DatabaseMetadataSchema.parse(d), error: null }))
-      .catch((e) => ({ data: null, error: "Error uploading file" }));
+      .catch((e) => ({ data: null, error: e.message }));
 
     return response;
   } catch (error) {
