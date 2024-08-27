@@ -3,5 +3,8 @@
   "private": true,
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "patchedDependencies": {
+    "waku@0.21.0": "patches/waku@0.21.0.patch"
+  }
 }
