@@ -8,20 +8,26 @@ export async function modifyMetadata(data: FormData) {
   const username = data.get("username") as string;
   const hash = data.get("hash") as string;
   const visibility = data.get("visibility") as string;
-  //   const filename = data.get("filename") as string;
+  const filename = data.get("filename") as string;
+
   const headers = getHeaders();
   const referer = new URL(headers.referer ?? "/").pathname;
 
-  console.log({ username, hash, visibility });
+  const updateData: { visibility?: string; filename?: string } = {};
+  if (visibility) updateData.visibility = visibility;
+  if (filename) updateData.filename = filename;
 
+  // TODO handle result somehow
   const res = await fetch(`http://localhost:34997/m/${username}/${hash}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ visibility }),
+    body: JSON.stringify(updateData),
   }).then((res) => res.json());
-  console.log(res);
+
+  console.log("refreshing", referer);
+
   return unstable_redirect(referer);
 }
 
