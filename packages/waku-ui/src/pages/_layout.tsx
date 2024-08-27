@@ -14,9 +14,9 @@ export default async function RootLayout({ children }: RootLayoutProps) {
   return (
     <html>
       <head></head>
-      <body className="bg-neutral-800 p-24 flex *:min-h-64 *:min-w-64 lg:m-0 lg:min-h-svh justify-center">
+      <body className="bg-neutral-800 flex justify-center p-4 sm:p-8 md:p-16">
         <Providers>
-          <div className="font-['Nunito']">
+          <div className="font-['Nunito'] w-full max-w-4xl flex flex-col min-h-screen">
             <meta property="description" content={data.description} />
             <link rel="icon" type="image/png" href={data.icon} />
             <Header />

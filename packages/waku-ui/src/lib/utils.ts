@@ -2,10 +2,10 @@ import { DatabaseMetadata } from "./types";
 
 export const getFileURL = (file: DatabaseMetadata, hash: boolean = false) => {
   if (file.visibility === "unlisted" || hash) {
-    return `http://localhost:8464/${file.username}/${file.hash}`;
+    return `${process.env.WAKU_PUBLIC_URL}/${file.username}/${file.hash}`;
   }
 
-  return `http://localhost:8464/${file.username}/${encodeURIComponent(
+  return `${process.env.WAKU_PUBLIC_URL}/${file.username}/${encodeURIComponent(
     file.filename
   )}`;
 };

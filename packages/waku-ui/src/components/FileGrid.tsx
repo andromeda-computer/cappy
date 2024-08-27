@@ -17,13 +17,13 @@ const FileGrid = ({
 }) => {
   return (
     <div
-      className={`grid gap-4 ${showUsername ? "grid-cols-12" : "grid-cols-11"}`}
+      className={`grid gap-4 ${showUsername ? "grid-cols-10" : "grid-cols-9"}`}
     >
       <h2 className={"col-span-4"}>filename</h2>
       {showUsername && <h2>user</h2>}
       <h2>age</h2>
       <h2 className={"col-span-2"}>visibility</h2>
-      <h2 className={"col-span-4"}>actions</h2>
+      <h2 className={"col-span-2 justify-self-end"}>actions</h2>
 
       {files?.map((file, idx) => (
         <React.Fragment key={idx}>
@@ -34,7 +34,7 @@ const FileGrid = ({
             <p>{file.visibility}</p>
             <CopyURLButton file={file} />
           </div>
-          <div className={"flex gap-2 text-purple-300 col-span-4"}>
+          <div className={"flex gap-2 text-purple-300 col-span-2 justify-end"}>
             {/* <button>rename</button> */}
             <DeleteFileButton file={file} />
             <ToggleVisibilityButton file={file} />

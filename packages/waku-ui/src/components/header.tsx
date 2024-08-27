@@ -10,6 +10,7 @@ export const Header = () => {
             cappy.space
           </Link>
         </h2>
+        {/* TODO change this to ~ when on upload page */}
         <Link to="/upload" className="font-bold text-xl no-underline">
           upload
         </Link>

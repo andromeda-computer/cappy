@@ -13,6 +13,7 @@ export const RequestMetadataSchema = z.object({
 // two people can upload the same file, but the file is stored once, and metadata keeps track of the paths/filenames/etc.
 export const DatabaseMetadataSchema = z.object({
   id: z.number().optional(),
+  status: z.enum(["exists", "new"]).optional(),
   hash: z.string(),
   filename: z.string(),
   originalFilename: z.string(),
