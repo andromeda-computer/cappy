@@ -1,9 +1,8 @@
-import { fileTypeFromBuffer } from "file-type";
 import { hash } from "../lib/hash";
-import { STORE_DIR } from "../lib/env";
 import { mkdir } from "node:fs/promises";
 import { RequestMetadataSchema, type DatabaseMetadata } from "../lib/types";
 import { fileExists, hashExists, insertFile } from "../lib/db";
+import { getFilePath, getFileType, writeFileMetadata } from "../lib/utils";
 
 export const storeHandler = async (req: Request): Promise<Response> => {
   const formData = await req.formData();
@@ -34,11 +33,7 @@ export const storeHandler = async (req: Request): Promise<Response> => {
   const reqData = parsed.data;
 
   // infer file type from the data
-  const fileType = await fileTypeFromBuffer(buffer);
-  // TODO we should try to parse the file extension from the filename if we can't infer it
-
-  // TODO should we allow unknown files, and then just store them as binary?
-  if (!fileType) return new Response("Unsupported file type", { status: 400 });
+  const fileType = await getFileType(data, buffer);
   const fileHash = hash(buffer);
 
   let metadata: DatabaseMetadata = {
@@ -79,22 +74,19 @@ export const storeHandler = async (req: Request): Promise<Response> => {
       });
     }
 
+    // TODO built consitent error handling
     // if the hash does not match, return 409
     return new Response("File with this filename already exists.", {
       status: 409,
     });
   }
 
-  let path = `${STORE_DIR}/${reqData.username}/${fileHash}`;
+  let path = getFilePath(reqData.username, fileHash);
   await mkdir(path, { recursive: true });
 
   // TODO probably need error handling here
   await Bun.write(`${path}/data.${fileType.ext}`, buffer);
-  await Bun.write(
-    `${path}/metadata.json`,
-    // TODO if filename not provided then filename is originalFilename
-    JSON.stringify(metadata)
-  );
+  await writeFileMetadata(metadata);
 
   return new Response(JSON.stringify({ ...metadata, status: "new" }), {
     status: 201, // created

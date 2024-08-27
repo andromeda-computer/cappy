@@ -1,20 +1,10 @@
 {
   "name": "cappy",
-  "module": "index.ts",
-  "type": "module",
-  "scripts": {
-    "dev": "export NODE_ENV='development' && bun run --watch src/index.ts",
-    "serve": "bun run src/index.ts"
-  },
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5.5.4"
-  },
-  "dependencies": {
-    "file-type": "^19.4.1",
-    "hono": "^4.5.6",
-    "zod": "^3.23.8"
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "patchedDependencies": {
+    "waku@0.21.0": "patches/waku@0.21.0.patch"
   }
 }

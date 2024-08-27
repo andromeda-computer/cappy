@@ -1,0 +1,99 @@
+diff --git a/dist/lib/renderers/rsc-renderer.js b/dist/lib/renderers/rsc-renderer.js
+index ab476547fa8bb04105aea1ce63eb8307045b5da6..e7c255e884b2ea556dae595eb80b57f8745ec3fb 100644
+--- a/dist/lib/renderers/rsc-renderer.js
++++ b/dist/lib/renderers/rsc-renderer.js
+@@ -1,6 +1,6 @@
+ import { filePathToFileURL } from '../utils/path.js';
+ import { parseFormData } from '../utils/form.js';
+-import { streamToString } from '../utils/stream.js';
++import { streamToArrayBuffer, arrayBufferToString } from '../utils/stream.js';
+ import { decodeActionId } from '../renderers/utils.js';
+ export const SERVER_MODULE_MAP = {
+     'rsdw-server': 'react-server-dom-webpack/server.edge',
+@@ -116,12 +116,13 @@ export async function renderRsc(args, opts) {
+     };
+     let decodedBody = args.decodedBody;
+     if (body) {
+-        const bodyStr = await streamToString(body);
++        const bodyBuf = await streamToArrayBuffer(body);
+         if (typeof contentType === 'string' && contentType.startsWith('multipart/form-data')) {
+             // XXX This doesn't support streaming unlike busboy
+-            const formData = parseFormData(bodyStr, contentType);
++            const formData = parseFormData(bodyBuf, contentType);
+             decodedBody = await decodeReply(formData, serverBundlerConfig);
+-        } else if (bodyStr) {
++        } else if (bodyBuf.byteLength > 0) {
++            const bodyStr = arrayBufferToString(bodyBuf);
+             decodedBody = await decodeReply(bodyStr, serverBundlerConfig);
+         }
+     }
+diff --git a/dist/lib/utils/form.js b/dist/lib/utils/form.js
+index b5d007c59b61c6c5b72ee00e52add9323953dcfc..e1cc71f8b45a0e801e642435b2f1f6b9706bf3a4 100644
+--- a/dist/lib/utils/form.js
++++ b/dist/lib/utils/form.js
+@@ -1,7 +1,10 @@
+ // TODO is this correct? better to use a library?
+ export const parseFormData = (body, contentType)=>{
+     const boundary = contentType.split('boundary=')[1];
+-    const parts = body.split(`--${boundary}`);
++    const parts = new Uint8Array(body).reduce((acc, byte)=>{
++        acc.push(String.fromCharCode(byte));
++        return acc;
++    }, []).join('').split(`--${boundary}`);
+     const formData = new FormData();
+     for (const part of parts){
+         if (part.trim() === '' || part === '--') continue;
+@@ -19,8 +22,9 @@ export const parseFormData = (body, contentType)=>{
+             if (filenameMatch) {
+                 const filename = filenameMatch[1];
+                 const type = headers['content-type'] || 'application/octet-stream';
++                const uint8Array = Uint8Array.from(content, (char)=>char.charCodeAt(0) & 0xff);
+                 const blob = new Blob([
+-                    content
++                    uint8Array
+                 ], {
+                     type
+                 });
+diff --git a/dist/lib/utils/stream.js b/dist/lib/utils/stream.js
+index 116b0793619948914eaef2f1cd8ceec33404600c..397dad617bc515679f63c60794615655bd22c442 100644
+--- a/dist/lib/utils/stream.js
++++ b/dist/lib/utils/stream.js
+@@ -9,6 +9,27 @@ export const concatUint8Arrays = (arrs)=>{
+     }
+     return array;
+ };
++export const streamToArrayBuffer = async (stream)=>{
++    const reader = stream.getReader();
++    const chunks = [];
++    let totalSize = 0;
++    let done = false;
++    let value;
++    do {
++        ({ done, value } = await reader.read());
++        if (!done && value) {
++            chunks.push(value);
++            totalSize += value.length;
++        }
++    }while (!done)
++    const result = new Uint8Array(totalSize);
++    let offset = 0;
++    for (const chunk of chunks){
++        result.set(chunk, offset);
++        offset += chunk.length;
++    }
++    return result.buffer;
++};
+ export const streamToString = async (stream)=>{
+     const decoder = new TextDecoder();
+     const reader = stream.getReader();
+@@ -28,6 +49,10 @@ export const streamToString = async (stream)=>{
+     outs.push(decoder.decode());
+     return outs.join('');
+ };
++export function arrayBufferToString(buffer) {
++    const uint8Array = new Uint8Array(buffer);
++    return Array.from(uint8Array).map((byte)=>String.fromCharCode(byte)).join('');
++}
+ export const stringToStream = (str)=>{
+     const encoder = new TextEncoder();
+     return new ReadableStream({

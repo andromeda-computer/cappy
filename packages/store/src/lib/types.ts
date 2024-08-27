@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const FileVisibilityEnum = z.enum(["public", "unlisted"]);
+export type FileVisibility = z.infer<typeof FileVisibilityEnum>;
 
 export const RequestMetadataSchema = z.object({
   username: z.string(),
@@ -28,3 +29,16 @@ export interface GetFileRequestURLParams {
   filename: string;
   isHash: boolean;
 }
+
+export const ModifyMetadataRequestSchema = z
+  .object({
+    visibility: FileVisibilityEnum.optional(),
+    filename: z.string().optional(),
+  })
+  .refine(
+    (d) => {
+      if (!d.filename && !d.visibility) return false;
+      return true;
+    },
+    { message: "Request must have visibility or filename" }
+  );
