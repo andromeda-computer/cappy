@@ -104,7 +104,9 @@ const FileUpload = () => {
                     ? "File uploaded successfully"
                     : "Uploaded file already exists!"}
                 </div>
-                <a href={getFileURL(response.data)}>{response.data.filename}</a>
+                <a target="_blank" href={getFileURL(response.data)}>
+                  {response.data.filename}
+                </a>
                 <div className="flex gap-2 items-center">
                   <pre className="max-w-lg">{getFileURL(response.data)}</pre>
                   <CopyURLButton file={response.data} />
