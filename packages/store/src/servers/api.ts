@@ -29,6 +29,7 @@ app.get("/list/:username", async (c) => {
   return c.json(await listUserFiles(username, true));
 });
 
+// TODO support emoji users i think
 app.get("/users", async (c) => {
   return c.json(getUsers());
 });
