@@ -40,7 +40,9 @@ app.get("/:username{[a-zA-Z0-9_-]+}/:filename", async (c) => {
   if (await file.exists()) {
     console.log(file.type);
     // @ts-ignore
-    return c.body(file);
+    return c.body(file, 200, {
+      "Cache-Control": "public, max-age=31536000",
+    });
   } else {
     return c.text("File not found", { status: 404 });
   }
